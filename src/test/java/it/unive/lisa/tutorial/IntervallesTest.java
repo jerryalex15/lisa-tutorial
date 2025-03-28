@@ -14,7 +14,7 @@ public class IntervallesTest {
     @Test
     public void testIntervalles() throws ParsingException {
         // we parse the program to get the CFG representation of the code in it
-        Program program = IMPFrontend.processFile("inputs/intervalles.imp");
+        Program program = IMPFrontend.processFile("inputs/intervalleSafeOverflow.imp");
 
         // we build a new configuration for the analysis
         LiSAConfiguration conf = new DefaultConfiguration();
@@ -28,7 +28,7 @@ public class IntervallesTest {
         // we specify the analysis that we want to execute
         conf.abstractState = DefaultConfiguration.simpleState(
                 DefaultConfiguration.defaultHeapDomain(),
-                new ValueEnvironment<>(Intervalles.TOP),
+                new ValueEnvironment<>(new IntervalWithRoundingDomain()),
                 DefaultConfiguration.defaultTypeDomain());
 
         conf.openCallPolicy = ReturnTopPolicy.INSTANCE;

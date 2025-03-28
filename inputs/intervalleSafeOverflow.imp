@@ -11,8 +11,8 @@ class setofintegervalues {
 	basic() {
 	    def a = 5;
 	    def x = 0;
-	    while(x > a)
-	        x = x + 1;
+	    while(x < a)
+	        x = x + 2;
 	}
 
 	/*severalvalues() {
@@ -58,6 +58,6 @@ class setofintegervalues {
 	    def i = 0;
 	    if(i > 0)
 	        i = 1;
-	    def j = i * 3;
+	    def j = i * 0;
 	}*/
 }
