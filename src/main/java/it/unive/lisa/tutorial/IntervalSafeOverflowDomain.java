@@ -9,6 +9,7 @@ import it.unive.lisa.symbolic.value.Constant;
 import it.unive.lisa.symbolic.value.Identifier;
 import it.unive.lisa.symbolic.value.ValueExpression;
 import it.unive.lisa.symbolic.value.operator.AdditionOperator;
+import it.unive.lisa.symbolic.value.operator.DivisionOperator;
 import it.unive.lisa.symbolic.value.operator.MultiplicationOperator;
 import it.unive.lisa.symbolic.value.operator.SubtractionOperator;
 import it.unive.lisa.symbolic.value.operator.binary.*;
@@ -27,6 +28,9 @@ public class IntervalSafeOverflowDomain implements BaseNonRelationalValueDomain<
 
     private static final IntervalSafeOverflowDomain TOP = new IntervalSafeOverflowDomain(IntOrInf.infiniteNeg, IntOrInf.infinitePos);
     private static final IntervalSafeOverflowDomain BOTTOM = new IntervalSafeOverflowDomain(IntOrInf.infinitePos, IntOrInf.infiniteNeg);
+
+    public static final int MIN = Integer.MIN_VALUE;
+    public static final int MAX = Integer.MAX_VALUE;
 
     private final IntOrInf low;
     private final IntOrInf high;
@@ -136,6 +140,20 @@ public class IntervalSafeOverflowDomain implements BaseNonRelationalValueDomain<
             IntOrInf low = IntOrInf.min(Arrays.stream(bounds).toArray(IntOrInf[]::new));
             IntOrInf high = IntOrInf.max(Arrays.stream(bounds).toArray(IntOrInf[]::new));
             return new IntervalSafeOverflowDomain(low, high);
+        } else if (operator instanceof DivisionOperator) {
+            if (right.low.isZero() || right.high.isZero()) {
+                throw new SemanticException("Division par zéro détectée !");
+            }
+
+            IntOrInf[] bounds = {
+                    IntOrInf.div(left.low, right.low), IntOrInf.div(left.low, right.high),
+                    IntOrInf.div(left.high, right.low), IntOrInf.div(left.high, right.high)
+            };
+
+            IntOrInf low = IntOrInf.min(bounds);
+            IntOrInf high = IntOrInf.max(bounds);
+
+            return new IntervalSafeOverflowDomain(low, high);
         }
 
 
@@ -171,132 +189,6 @@ public class IntervalSafeOverflowDomain implements BaseNonRelationalValueDomain<
         if (isBottom()) return "BOTTOM";
         if (isTop()) return "TOP";
         return "[" + low + " .. " + high + "]";
-    }
-
-    // Helper class for representing float or infinity
-    private static class IntOrInf {
-        private final boolean isInf;
-        private final boolean isNeg; // True if negative infinity, false if positive infinity
-        private final int value;
-        public static final IntOrInf infiniteNeg = new IntOrInf(true);
-        public static final IntOrInf infinitePos = new IntOrInf(false);
-
-        // Constructor for finite value
-        public IntOrInf(int value) {
-            this.isInf = false;
-            this.isNeg = false;
-            this.value = value;
-        }
-
-        // Constructor for infinity
-        private IntOrInf(boolean isNeg) {
-            this.isInf = true;
-            this.isNeg = isNeg;
-            this.value = isNeg ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-        }
-
-        public boolean isInfinite() {
-            return isInf;
-        }
-
-        public boolean isNegativeInfinite() {
-            return isInf && isNeg;
-        }
-
-        public boolean isPositiveInfinite() {
-            return isInf && !isNeg;
-        }
-
-        public static IntOrInf min(IntOrInf a, IntOrInf b) {
-            if (a.isNegativeInfinite() || b.isNegativeInfinite()) return infiniteNeg;
-            if (a.isPositiveInfinite()) return b;
-            if (b.isPositiveInfinite()) return a;
-            return new IntOrInf(Math.min(a.value, b.value));
-        }
-
-        public static IntOrInf min(IntOrInf... values) {
-            return Arrays.stream(values).reduce(IntOrInf::min).orElse(infiniteNeg);
-        }
-
-        public static IntOrInf max(IntOrInf a, IntOrInf b) {
-            if (a.isPositiveInfinite() || b.isPositiveInfinite()) return infinitePos;
-            if (a.isNegativeInfinite()) return b;
-            if (b.isNegativeInfinite()) return a;
-            return new IntOrInf(Math.max(a.value, b.value));
-        }
-
-        public static IntOrInf max(IntOrInf... values) {
-            return Arrays.stream(values).reduce(IntOrInf::max).orElse(infinitePos);
-        }
-
-        public static IntOrInf add(IntOrInf a, IntOrInf b) {
-            if (a.isInfinite() || b.isInfinite()) {
-                if (a.isNegativeInfinite() || b.isNegativeInfinite()) return infiniteNeg;
-                return infinitePos;
-            }
-            return new IntOrInf(a.value + b.value);
-        }
-
-        public static IntOrInf sub(IntOrInf a, IntOrInf b) {
-            if (a.isInfinite() || b.isInfinite()) {
-                if (a.isNegativeInfinite() || b.isPositiveInfinite()) return infiniteNeg;
-                if (a.isPositiveInfinite() || b.isNegativeInfinite()) return infinitePos;
-            }
-            return new IntOrInf(a.value - b.value);
-        }
-
-        public static IntOrInf mul(IntOrInf a, IntOrInf b) {
-            if (a.isInfinite() || b.isInfinite()) {
-                if ((a.isNegativeInfinite() && b.value < 0) || (b.isNegativeInfinite() && a.value < 0)) return infinitePos;
-                if ((a.isPositiveInfinite() && b.value < 0) || (b.isPositiveInfinite() && a.value < 0)) return infiniteNeg;
-                return infinitePos;
-            }
-            return new IntOrInf(a.value * b.value);
-        }
-
-        public static IntOrInf negate(IntOrInf a) {
-            if (a.isNegativeInfinite()) return infinitePos;
-            if (a.isPositiveInfinite()) return infiniteNeg;
-            return new IntOrInf(-a.value);
-        }
-
-        public boolean lessThan(IntOrInf other) {
-            if (this.isNegativeInfinite()) return !other.isNegativeInfinite();
-            if (this.isPositiveInfinite()) return false;
-            if (other.isNegativeInfinite()) return false;
-            if (other.isPositiveInfinite()) return true;
-            return this.value < other.value;
-        }
-
-        public boolean lessOrEqual(IntOrInf other) {
-            if (this.isNegativeInfinite()) return true;
-            if (this.isPositiveInfinite()) return other.isPositiveInfinite();
-            if (other.isNegativeInfinite()) return false;
-            if (other.isPositiveInfinite()) return true;
-            return this.value <= other.value;
-        }
-
-        @Override
-        public String toString() {
-            if (isNegativeInfinite()) return "-∞";
-            if (isPositiveInfinite()) return "+∞";
-            return String.valueOf(value);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (!(obj instanceof IntOrInf)) return false;
-            IntOrInf other = (IntOrInf) obj;
-            if (this.isInf && other.isInf) return this.isNeg == other.isNeg;
-            if (this.isInf || other.isInf) return false;
-            return this.value == other.value;
-        }
-
-        @Override
-        public int hashCode() {
-            return isInf ? (isNeg ? -1 : 1) : Double.hashCode(value);
-        }
     }
 
     @Override
@@ -398,6 +290,168 @@ public class IntervalSafeOverflowDomain implements BaseNonRelationalValueDomain<
             return environment.bottom(); // Condition contradictoire
         } else {
             return environment.putState(id, update); // Mettre à jour l'intervalle de la variable
+        }
+    }
+
+    // class for representing Int or infinity
+    private static class IntOrInf {
+        private final boolean isInf;
+        private final boolean isNeg; // True if negative infinity, false if positive infinity
+        private final int value;
+        public static final IntOrInf infiniteNeg = new IntOrInf(true);
+        public static final IntOrInf infinitePos = new IntOrInf(false);
+
+        // Constructor for finite value
+        public IntOrInf(int value) {
+            this.isInf = false;
+            this.isNeg = false;
+            this.value = value;
+        }
+
+        // Constructor for infinity
+        private IntOrInf(boolean isNeg) {
+            this.isInf = true;
+            this.isNeg = isNeg;
+            this.value = isNeg ? MIN : MAX;
+        }
+
+        public boolean isInfinite() {
+            return isInf;
+        }
+
+        public boolean isNegativeInfinite() {
+            return isInf && isNeg;
+        }
+
+        public boolean isPositiveInfinite() {
+            return isInf && !isNeg;
+        }
+
+        private boolean isZero() {
+            return value == 0 && !this.isInfinite();
+        }
+
+        private boolean isPositive() {
+            return value > 0 && !this.isInfinite();
+        }
+
+        private boolean isNegative() {
+            return value < 0 && !this.isInfinite();
+        }
+
+        public static IntOrInf min(IntOrInf a, IntOrInf b) {
+            if (a.isNegativeInfinite() || b.isNegativeInfinite()) return infiniteNeg;
+            if (a.isPositiveInfinite()) return b;
+            if (b.isPositiveInfinite()) return a;
+            return new IntOrInf(Math.min(a.value, b.value));
+        }
+
+        public static IntOrInf min(IntOrInf... values) {
+            return Arrays.stream(values).reduce(IntOrInf::min).orElse(infiniteNeg);
+        }
+
+        public static IntOrInf max(IntOrInf a, IntOrInf b) {
+            if (a.isPositiveInfinite() || b.isPositiveInfinite()) return infinitePos;
+            if (a.isNegativeInfinite()) return b;
+            if (b.isNegativeInfinite()) return a;
+            return new IntOrInf(Math.max(a.value, b.value));
+        }
+
+        public static IntOrInf max(IntOrInf... values) {
+            return Arrays.stream(values).reduce(IntOrInf::max).orElse(infinitePos);
+        }
+
+        public static IntOrInf add(IntOrInf a, IntOrInf b) {
+            if (a.isInfinite() || b.isInfinite()) {
+                if (a.isNegativeInfinite() || b.isNegativeInfinite()) return infiniteNeg;
+                return infinitePos;
+            }
+
+            long result = (long) a.value + (long) b.value;
+            return new IntOrInf(handleOverflow(result));
+        }
+
+        public static IntOrInf sub(IntOrInf a, IntOrInf b) {
+            if (a.isInfinite() || b.isInfinite()) {
+                if (a.isNegativeInfinite() || b.isPositiveInfinite()) return infiniteNeg;
+                if (a.isPositiveInfinite() || b.isNegativeInfinite()) return infinitePos;
+            }
+
+            long result = (long) a.value - (long) b.value;
+            return new IntOrInf(handleOverflow(result));
+        }
+
+        public static IntOrInf mul(IntOrInf a, IntOrInf b) {
+            if (a.isInfinite() || b.isInfinite()) {
+                if ((a.isNegativeInfinite() && b.value < 0) || (b.isNegativeInfinite() && a.value < 0)) return infinitePos;
+                if ((a.isPositiveInfinite() && b.value < 0) || (b.isPositiveInfinite() && a.value < 0)) return infiniteNeg;
+                return infinitePos;
+            }
+
+            long result = (long) a.value * (long) b.value;
+            return new IntOrInf(handleOverflow(result));
+        }
+
+        public static IntOrInf div(IntOrInf a, IntOrInf b) {
+            if (b.isZero()) throw new ArithmeticException("Division par zéro !");
+            if (a.isInfinite() || b.isInfinite()) {
+                if (a.isPositiveInfinite() && b.isPositive()) return infinitePos;
+                if (a.isPositiveInfinite() && b.isNegative()) return infiniteNeg;
+                if (a.isNegativeInfinite() && b.isPositive()) return infiniteNeg;
+                if (a.isNegativeInfinite() && b.isNegative()) return infinitePos;
+                return infinitePos; // Cas où b tend vers zéro
+            }
+            return new IntOrInf(a.value / b.value);
+        }
+
+        private static int handleOverflow(long value) {
+            if (value > MAX) return MIN + (int) (value - MAX - 1);
+            if (value < MIN) return MAX - (int) (MIN - value - 1);
+            return (int) value;
+        }
+
+        public static IntOrInf negate(IntOrInf a) {
+            if (a.isNegativeInfinite()) return infinitePos;
+            if (a.isPositiveInfinite()) return infiniteNeg;
+            return new IntOrInf(-a.value);
+        }
+
+        public boolean lessThan(IntOrInf other) {
+            if (this.isNegativeInfinite()) return !other.isNegativeInfinite();
+            if (this.isPositiveInfinite()) return false;
+            if (other.isNegativeInfinite()) return false;
+            if (other.isPositiveInfinite()) return true;
+            return this.value < other.value;
+        }
+
+        public boolean lessOrEqual(IntOrInf other) {
+            if (this.isNegativeInfinite()) return true;
+            if (this.isPositiveInfinite()) return other.isPositiveInfinite();
+            if (other.isNegativeInfinite()) return false;
+            if (other.isPositiveInfinite()) return true;
+            return this.value <= other.value;
+        }
+
+        @Override
+        public String toString() {
+            if (isNegativeInfinite() || (value==MIN && !this.isInfinite())) return "-∞";
+            if (isPositiveInfinite() || (value==MAX && !this.isInfinite())) return "+∞";
+            return String.valueOf(value);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (!(obj instanceof IntOrInf)) return false;
+            IntOrInf other = (IntOrInf) obj;
+            if (this.isInf && other.isInf) return this.isNeg == other.isNeg;
+            if (this.isInf || other.isInf) return false;
+            return this.value == other.value;
+        }
+
+        @Override
+        public int hashCode() {
+            return isInf ? (isNeg ? -1 : 1) : Double.hashCode(value);
         }
     }
 }
