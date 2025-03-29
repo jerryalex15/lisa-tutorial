@@ -1,7 +1,7 @@
 class setofintegervalues {
 	/*basic() {
-		def i = 2;
-		def j = -10;
+		def i = 2147483647;
+		def j = 20;
 		def a = i + j;
 		def s = i - j;
 		def m = i * j;
@@ -9,9 +9,10 @@ class setofintegervalues {
 	}*/
 
 	basic() {
-	    def a = 5;
+	    def a = -2;
+	    a =-a;
 	    def x = 0;
-	    while(x < a)
+	    while(a>=1)
 	        x = x + 2;
 	}
 
@@ -47,8 +48,8 @@ class setofintegervalues {
 
     }*/
 
-/*
-    whilestatement() {
+
+    /*whilestatement() {
         def i = 0;
         while(i<5)
           i = i + 1;

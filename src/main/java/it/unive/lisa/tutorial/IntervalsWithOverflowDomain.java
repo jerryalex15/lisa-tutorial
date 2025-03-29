@@ -223,7 +223,6 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
         }
 
         IntervalsWithOverflowDomain starting = environment.getState(id);
-        if (starting == null) starting = top();
 
         System.out.println("assumeBinary: starting value for " + id + " = " + starting);
 

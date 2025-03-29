@@ -67,9 +67,9 @@ public class IntervalSafeOverflowDomain implements BaseNonRelationalValueDomain<
 
     @Override
     public IntervalSafeOverflowDomain lubAux(IntervalSafeOverflowDomain other) throws SemanticException {
-        if (this.isBottom()) return other;
-        if (other.isBottom()) return this;
-        return new IntervalSafeOverflowDomain(IntOrInf.min(this.low, other.low), IntOrInf.max(this.high, other.high));
+        if (this.isBottom() || other.isBottom()) return bottom();
+        //if (other.isBottom()) return this;
+        return new IntervalSafeOverflowDomain(IntervalSafeOverflowDomain.IntOrInf.min(this.low, other.low), IntervalSafeOverflowDomain.IntOrInf.max(this.high, other.high));
     }
 
     @Override
@@ -156,12 +156,7 @@ public class IntervalSafeOverflowDomain implements BaseNonRelationalValueDomain<
             return new IntervalSafeOverflowDomain(low, high);
         }
 
-
-        //add division
-
-
-
-        return TOP; // Unsupported operators result in top
+        return TOP;
     }
 
     @Override
@@ -184,10 +179,29 @@ public class IntervalSafeOverflowDomain implements BaseNonRelationalValueDomain<
         return low.hashCode() * 31 + high.hashCode();
     }
 
+    public Integer getMin() {
+        if(low.isInfinite()) return null;
+        else return low.value;
+    }
+
+    public Integer getMax() {
+        if(high.isInfinite()) return null;
+        else return high.value;
+    }
+
     @Override
     public String toString() {
         if (isBottom()) return "BOTTOM";
         if (isTop()) return "TOP";
+        if (low.value ==  Integer.MIN_VALUE && high.value ==  Integer.MAX_VALUE) {
+            return "[ -∞  .. +∞ ]";
+        }
+        if (low.value ==  Integer.MIN_VALUE) {
+            return "[ -∞  .. " + high + "]";
+        }
+        if (high.value ==  Integer.MAX_VALUE) {
+            return "[" + low + " .. +∞ ]";
+        }
         return "[" + low + " .. " + high + "]";
     }
 
@@ -216,81 +230,55 @@ public class IntervalSafeOverflowDomain implements BaseNonRelationalValueDomain<
             id = (Identifier) right;
             rightIsExpr = false;
         } else {
+            System.out.println("assumeBinary: neither left nor right is an identifier, returning unchanged environment");
             return environment; // Ni left ni right n'est un identifiant, pas de raffinement
         }
 
         // Étape 2 : Récupérer l'intervalle actuel de la variable
         IntervalSafeOverflowDomain starting = environment.getState(id);
+
         if (eval.isBottom() || starting.isBottom()) {
             return environment.bottom();
         }
 
-        // Étape 3 : Préparer les intervalles pour le raffinement
-        boolean lowIsMinusInfinity = eval.low.isNegativeInfinite();
-        IntervalSafeOverflowDomain low_inf = new IntervalSafeOverflowDomain(
-                eval.low,
-                IntOrInf.infinitePos
-        );
-        IntervalSafeOverflowDomain lowp1_inf = new IntervalSafeOverflowDomain(
-                new IntOrInf(eval.low.isInfinite() ? eval.low.value : eval.low.value + 1),
-                IntOrInf.infinitePos
-        );
-        IntervalSafeOverflowDomain inf_high = new IntervalSafeOverflowDomain(
-                IntOrInf.infiniteNeg,
-                eval.high
-        );
-        IntervalSafeOverflowDomain inf_highm1 = new IntervalSafeOverflowDomain(
-                IntOrInf.infiniteNeg,
-                new IntOrInf(eval.high.isInfinite() ? eval.high.value : eval.high.value - 1)
-        );
-
-        // Étape 4 : Raffiner l'intervalle en fonction de l'opérateur
-        IntervalSafeOverflowDomain update = null;
-        if (operator == ComparisonEq.INSTANCE) {
-            update = eval; // i == 10 -> i: [10, 10]
-        } else if (operator == ComparisonGe.INSTANCE) {
+        if (operator instanceof ComparisonEq) {
+            // a == 1 -> a: [1 .. 1]
+            return environment.putState(id, new IntervalSafeOverflowDomain(new IntOrInf(eval.low.value), new IntOrInf(eval.high.value)));
+        } else if (operator instanceof ComparisonGe) {
             if (rightIsExpr) {
-                // i >= 10 -> i: [10, +∞]
-                update = lowIsMinusInfinity ? null : starting.glb(low_inf);
+                // a >= 1 -> a: [1, +∞]
+                return environment.putState(id, new IntervalSafeOverflowDomain(new IntOrInf(eval.getMax()), new IntOrInf(false)));
             } else {
-                // 10 >= i -> i: [-∞, 10]
-                update = starting.glb(inf_high);
+                // 1 >= a -> a: [-∞, 1]
+                return environment.putState(id, new IntervalSafeOverflowDomain(new IntOrInf(true), new IntOrInf(eval.getMin())));
             }
-        } else if (operator == ComparisonGt.INSTANCE) {
+        } else if (operator instanceof ComparisonGt) {
             if (rightIsExpr) {
-                // i > 10 -> i: [10 + 1, +∞]
-                update = lowIsMinusInfinity ? null : starting.glb(lowp1_inf);
+                // a > 1 -> a: [1 + 1, +∞]
+                return environment.putState(id, new IntervalSafeOverflowDomain(new IntOrInf(eval.getMax()+1), new IntOrInf(false)));
             } else {
-                // 10 > i -> i: [-∞, 10 - 1]
-                update = !eval.isTop() && lowIsMinusInfinity ? eval : starting.glb(inf_highm1);
+                // 1 > a -> a: [-∞, 1 - 1]
+                return environment.putState(id, new IntervalSafeOverflowDomain(new IntOrInf(true), new IntOrInf(eval.getMin()-1)));
             }
-        } else if (operator == ComparisonLe.INSTANCE) {
+        } else if (operator instanceof ComparisonLe) {
             if (rightIsExpr) {
-                // i <= 10 -> i: [-∞, 10]
-                update = starting.glb(inf_high);
+                // a <= 1 -> a: [-∞, 1]
+                return environment.putState(id, new IntervalSafeOverflowDomain(new IntOrInf(true), new IntOrInf(eval.getMin())));
             } else {
-                // 10.0 <= i -> i: [10, +∞]
-                update = lowIsMinusInfinity ? null : starting.glb(low_inf);
+                // 1 <= a -> a: [1, +∞]
+                return environment.putState(id, new IntervalSafeOverflowDomain(new IntOrInf(eval.getMax()), new IntOrInf(false)));
             }
-        } else if (operator == ComparisonLt.INSTANCE) {
-            //System.out.println("ICI ");
+        } else if (operator instanceof ComparisonLt) {
             if (rightIsExpr) {
-                // i < 10 -> i: [-∞, 10 - 1]
-                update = !eval.isTop() && lowIsMinusInfinity ? eval : starting.glb(inf_highm1);
+                // a < 1 -> a: [-∞, 1 - 1]
+                return environment.putState(id, new IntervalSafeOverflowDomain(new IntOrInf(true), new IntOrInf(eval.getMin()-1)));
             } else {
-                // 10 < i -> i: [10 + 1, +∞]
-                update = lowIsMinusInfinity ? null : starting.glb(lowp1_inf);
+                // 10 < i -> i: [1 + 1, +∞]
+                return environment.putState(id, new IntervalSafeOverflowDomain(new IntOrInf(eval.getMax()+1), new IntOrInf(false)));
             }
         }
 
-        // Étape 5 : Mettre à jour l'environnement
-        if (update == null) {
-            return environment; // Pas de raffinement possible
-        } else if (update.isBottom()) {
-            return environment.bottom(); // Condition contradictoire
-        } else {
-            return environment.putState(id, update); // Mettre à jour l'intervalle de la variable
-        }
+        return BaseNonRelationalValueDomain.super.assumeBinaryExpression(environment, operator, left, right, src, dest, oracle);
     }
 
     // class for representing Int or infinity
