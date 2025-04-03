@@ -1,5 +1,6 @@
 package it.unive.lisa.tutorial;
 
+import it.unive.lisa.analysis.Lattice;
 import it.unive.lisa.analysis.SemanticException;
 import it.unive.lisa.analysis.SemanticOracle;
 import it.unive.lisa.analysis.nonrelational.value.BaseNonRelationalValueDomain;
@@ -68,7 +69,6 @@ public class IntervalSafeOverflowDomain implements BaseNonRelationalValueDomain<
     @Override
     public IntervalSafeOverflowDomain lubAux(IntervalSafeOverflowDomain other) throws SemanticException {
         if (this.isBottom() || other.isBottom()) return bottom();
-        //if (other.isBottom()) return this;
         return new IntervalSafeOverflowDomain(IntervalSafeOverflowDomain.IntOrInf.min(this.low, other.low), IntervalSafeOverflowDomain.IntOrInf.max(this.high, other.high));
     }
 
@@ -161,8 +161,8 @@ public class IntervalSafeOverflowDomain implements BaseNonRelationalValueDomain<
 
     @Override
     public StructuredRepresentation representation() {
-        if (isBottom()) return new StringRepresentation("BOTTOM");
-        if (isTop()) return new StringRepresentation("TOP");
+        if (isBottom()) return new StringRepresentation(Lattice.BOTTOM_STRING);
+        if (isTop()) return new StringRepresentation(Lattice.TOP_STRING);
         return new StringRepresentation("[" + low + " .. " + high + "]");
     }
 
@@ -370,12 +370,32 @@ public class IntervalSafeOverflowDomain implements BaseNonRelationalValueDomain<
         }
 
         public static IntOrInf mul(IntOrInf a, IntOrInf b) {
-            if (a.isInfinite() || b.isInfinite()) {
-                if ((a.isNegativeInfinite() && b.value < 0) || (b.isNegativeInfinite() && a.value < 0)) return infinitePos;
-                if ((a.isPositiveInfinite() && b.value < 0) || (b.isPositiveInfinite() && a.value < 0)) return infiniteNeg;
-                return infinitePos;
+            // Cas où l'un des opérandes est zéro
+            if (a.isZero() || b.isZero()) {
+                if (a.isInfinite() || b.isInfinite()) {
+                    throw new ArithmeticException("Multiplication indéfinie : 0 * ∞");
+                }
+                return new IntOrInf(0);
             }
 
+            // Cas où les deux opérandes sont infinis
+            if (a.isInfinite() && b.isInfinite()) {
+                if (a.isNegativeInfinite() == b.isNegativeInfinite()) {
+                    return infinitePos; // (-∞) * (-∞) = ∞ et ∞ * ∞ = ∞
+                } else {
+                    return infiniteNeg; // (-∞) * ∞ = -∞ et ∞ * (-∞) = -∞
+                }
+            }
+
+            // Cas où un seul des opérandes est infini
+            if (a.isInfinite()) {
+                return (b.value < 0) ? (a.isPositiveInfinite() ? infiniteNeg : infinitePos) : a;
+            }
+            if (b.isInfinite()) {
+                return (a.value < 0) ? (b.isPositiveInfinite() ? infiniteNeg : infinitePos) : b;
+            }
+
+            // Multiplication normale entre deux nombres finis
             long result = (long) a.value * (long) b.value;
             return new IntOrInf(handleOverflow(result));
         }

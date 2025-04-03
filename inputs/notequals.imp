@@ -6,12 +6,12 @@ class notequals {
 	        z = y + 1;
 	}
 
-	basic2(x) {
+	/*basic2(x) {
 	    def y = x + 1;
 	    def k = y + 1;
 	    def z = y;
 	    x = 0;
 	    def v = z+1;
-	}
+	}*/
 
 }

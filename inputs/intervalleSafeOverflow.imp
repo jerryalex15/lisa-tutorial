@@ -1,4 +1,4 @@
-class setofintegervalues {
+class intervalleSafeOverflow {
 	/*basic() {
 		def i = 2147483647;
 		def j = 20;
@@ -8,13 +8,13 @@ class setofintegervalues {
 		def d = i / j;
 	}*/
 
-	basic() {
+	/*basic() {
 	    def a = -2;
 	    a =-a;
 	    def x = 0;
 	    while(a>=1)
 	        x = x + 2;
-	}
+	}*/
 
 	/*severalvalues() {
 	    def i = 0;
@@ -55,10 +55,10 @@ class setofintegervalues {
           i = i + 1;
     }*/
 
-	/*ifstatement() {
+	ifstatement() {
 	    def i = 0;
 	    if(i > 0)
 	        i = 1;
-	    def j = i * 0;
-	}*/
+	    def j = i * 2;
+	}
 }

@@ -1,37 +1,38 @@
 package it.unive.lisa.tutorial;
 
+import it.unive.lisa.AnalysisException;
 import it.unive.lisa.DefaultConfiguration;
 import it.unive.lisa.LiSA;
-import it.unive.lisa.analysis.nonrelational.value.ValueEnvironment;
+import it.unive.lisa.analysis.heap.pointbased.FieldSensitivePointBasedHeap;
 import it.unive.lisa.conf.LiSAConfiguration;
+import it.unive.lisa.conf.LiSAConfiguration.GraphType;
 import it.unive.lisa.imp.IMPFrontend;
 import it.unive.lisa.imp.ParsingException;
-import it.unive.lisa.interprocedural.ReturnTopPolicy;
 import it.unive.lisa.program.Program;
 import org.junit.Test;
 
-public class IntervallesTest {
+public class TwoVariablesInequalityTest {
+
     @Test
-    public void testIntervalles() throws ParsingException {
+    public void testUpperBounds() throws ParsingException, AnalysisException {
         // we parse the program to get the CFG representation of the code in it
-        Program program = IMPFrontend.processFile("inputs/intervalleSafeOverflow.imp");
+        Program program = IMPFrontend.processFile("inputs/TwoVariablesInequality.imp");
 
         // we build a new configuration for the analysis
         LiSAConfiguration conf = new DefaultConfiguration();
 
         // we specify where we want files to be generated
-        conf.workdir = "outputs/intervalles";
+        conf.workdir = "outputs/TwoVariablesInequality";
 
         // we specify the visual format of the analysis results
-        conf.analysisGraphs = LiSAConfiguration.GraphType.HTML;
+        conf.analysisGraphs = GraphType.HTML;
 
         // we specify the analysis that we want to execute
-        conf.abstractState = DefaultConfiguration.simpleState(
-                DefaultConfiguration.defaultHeapDomain(),
-                new ValueEnvironment<>(new IntervalsWithOverflowDomain()),
-                DefaultConfiguration.defaultTypeDomain());
 
-        conf.openCallPolicy = ReturnTopPolicy.INSTANCE;
+        conf.abstractState = DefaultConfiguration.simpleState(
+                new FieldSensitivePointBasedHeap(),
+                TwoVariablesInequalityDomain.TOP,
+                DefaultConfiguration.defaultTypeDomain());
 
         // we instantiate LiSA with our configuration
         LiSA lisa = new LiSA(conf);
