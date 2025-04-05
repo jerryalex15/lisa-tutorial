@@ -26,17 +26,6 @@ public class IntervalSafeOverflowTwoVariablesInequalityCartesianProduct extends 
         return new IntervalSafeOverflowTwoVariablesInequalityCartesianProduct(left, right).reduce();
     }
 
-    //private IntervalSafeOverflowTwoVariablesInequalityCartesianProduct reduce() {
-    //    TwoVariablesInequalityDomain newLeft = this.left;
-    //    ValueEnvironment<IntervalSafeOverflowDomain> newRight = this.right;
-//
-    //    System.out.println("Reducing");
-    //    System.out.println(newLeft);
-    //    System.out.println(newRight);
-    //    // todo à changer
-    //    return new IntervalSafeOverflowTwoVariablesInequalityCartesianProduct(left, right);
-    //}
-
     private IntervalSafeOverflowTwoVariablesInequalityCartesianProduct reduce() {
         TwoVariablesInequalityDomain newLeft = this.left; // Domain contenant les inégalités (left)
         ValueEnvironment<IntervalSafeOverflowDomain> newRight = this.right; // Domain contenant les intervalles (right)

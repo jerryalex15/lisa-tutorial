@@ -6,10 +6,6 @@ class produitCartesian {
         def u = 6;
         u = z - 2;
         def y = x + 5;
-        if((3*x+2*y) < 3)
-            def d = 1;
-        if((0*x+2*y) < 3)
-            d = 1;
     }
     /*basic() {
     		def i = 2147483647;
