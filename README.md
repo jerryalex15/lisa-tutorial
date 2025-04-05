@@ -431,7 +431,7 @@ L'absence de cette mise à jour provoque une incohérence entre l'analyse concep
 
 ---
 
-## Conclusion
+## Résumé
 Le **produit cartésien** proposé combine efficacement les domaines relationnel et intervallaire pour :
 1. Détecter des contradictions en projetant les intervalles dans les relations linéaires.
 2. Gérer les imprécisions en utilisant l'état abstrait TOP.
