@@ -5,50 +5,31 @@ class twovariablesinequality {
         def z = 1;
         def u = z - 2;
         def y = x + 5;
-        y = x + 3;
-        x = z + 5;
         if((2*x+5*y) <= 3){
             def w=3;
         }
-        if(x <= y){
-            y = x - 2;
-        }
     }
-    /*
-    complex(){
+
+    applyClosureAndTransitivity(){
+        def x = 0;
+        def z = 1;
+        def y = x + 5;
+        y = x + 3;
+        x = z + 5;
+    }
+
+    condition(){
         def a = 1;
-        def b = 2;
-        def c = 5;
+        def b = 7;
         def x = 1;
         def y = 1;
-        def d = (a*x + b*y)  < c;
 
-        if((3*x+2*y) <= 3){
-            d = 1;
-            def z= 2;
+        if((1*x + 5*y) <= 4){
+            def z=2;
         }
         else {
-
-            if(( 1*x + 2*y) <= 3)
-                d=2;
-            def z=3;
+            if((2*x + 4*y) <= 5)
+                def z=3;
         }
-
-
     }
-
-    nested(){
-        def a = 1;
-        def b = 2;
-        def c = 5;
-        def x = 1;
-        def y = 1;
-        def d = (a*x + b*y)  < c;
-        if((3*x+2*y) <= 3){
-            d = 1;
-            if((0*x+2*y) <= 3)
-                d=2;
-        }
-    }*/
-
 }

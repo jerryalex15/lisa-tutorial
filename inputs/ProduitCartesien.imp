@@ -1,0 +1,11 @@
+class ProduitCartesien {
+
+    basic_linear(){
+        def x = -1;
+        def z = 2;
+        def u = 6;
+        u = z - 2;
+        def y = x + 5;
+    }
+
+}

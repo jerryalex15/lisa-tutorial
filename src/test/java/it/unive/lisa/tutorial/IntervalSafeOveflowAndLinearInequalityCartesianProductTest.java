@@ -18,13 +18,13 @@ public class IntervalSafeOveflowAndLinearInequalityCartesianProductTest {
     @Test
     public void testUpperBounds() throws ParsingException, AnalysisException {
         // we parse the program to get the CFG representation of the code in it
-        Program program = IMPFrontend.processFile("inputs/ProduitCartesian.imp");
+        Program program = IMPFrontend.processFile("inputs/ProduitCartesien.imp");
 
         // we build a new configuration for the analysis
         LiSAConfiguration conf = new DefaultConfiguration();
 
         // we specify where we want files to be generated
-        conf.workdir = "outputs/ProduitCartesian";
+        conf.workdir = "outputs/ProduitCartesien";
 
         // we specify the visual format of the analysis results
         conf.analysisGraphs = GraphType.HTML;
